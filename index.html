@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quest 64: Web Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        /* Toolbelt Styles */
+        #toolbelt-container {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+            z-index: 50;
+        }
+
+        .toolbelt-slot {
+            width: 48px;
+            height: 48px;
+            border: 2px solid white;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .toolbelt-slot:active {
+            transform: scale(0.95);
+        }
+
+        .toolbelt-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+        .toolbelt-count {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: #000;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid #555;
+        }
+        
+        /* Inventory Modal */
+        #inventory-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        
+        #inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .inv-item {
+            width: 140px;
+            height: 50px;
+            border: 2px solid #555;
+            background: #222;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            gap: 10px;
+            font-size: 10px;
+        }
+        
+        .inv-item:active {
+            border-color: #ffff00;
+            background: #444;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .hud-element {
+            position: absolute;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #hp-bar {
+            top: 20px;
+            left: 20px;
+            font-size: 16px;
+        }
+
+        #mp-bar {
+            top: 45px;
+            left: 20px;
+            font-size: 16px;
+            color: #44aaff;
+        }
+
+        #spirit-stats {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            font-size: 10px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        #compass {
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border: 2px solid white;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+        }
+        #compass-arrow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0; 
+            height: 0; 
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 20px solid red;
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%);
+        }
+
+        /* Spell Controls (New) */
+        #spell-controls {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 150px;
+            height: 150px;
+            pointer-events: none;
+        }
+
+        .spell-btn {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid white;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #000;
+            pointer-events: auto;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+            transition: transform 0.1s;
+            background: #333;
+        }
+        .spell-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 #000;
+        }
+        .spell-btn.main {
+            width: 80px;
+            height: 80px;
+            bottom: 0;
+            right: 0;
+            font-size: 14px;
+            z-index: 10;
+            border-width: 3px;
+        }
+        .spell-btn.sub {
+            width: 48px;
+            height: 48px;
+            font-size: 9px;
+            z-index: 5;
+        }
+        #spell-sub-1 { bottom: 5px; right: 85px; }
+        #spell-sub-2 { bottom: 65px; right: 65px; }
+        #spell-sub-3 { bottom: 85px; right: 5px; }
+
+        /* Legacy Classes for Level Up Menu */
+        .element-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%; border: 3px solid white;
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; cursor: pointer;
+            box-shadow: 0 4px 0 #000;
+        }
+        .element-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #000; }
+        .fire { background: #d32f2f; }
+        .water { background: #1976d2; }
+        .earth { background: #388e3c; }
+        .wind { background: #fbc02d; color: black; }
+
+        #zone-nipple {
+            position: absolute;
+            bottom: 100px; /* Moved up to make room for toolbelt */
+            left: 20px;
+            width: 150px;
+            height: 150px;
+            pointer-events: auto;
+        }
+
+        #turn-indicator {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            color: #ffcc00;
+            text-shadow: 2px 2px 0 #000;
+            display: none;
+        }
+
+        #move-bar-container {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            background: #333;
+            border: 2px solid white;
+            display: none;
+        }
+        #move-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: #ffff00;
+        }
+
+        #message-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid white;
+            padding: 10px;
+            text-align: center;
+            display: none;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        #start-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        
+        #tap-text {
+            font-size: 24px;
+            color: #ffcc00;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            animation: blink 1s infinite alternate;
+        }
+        
+        @keyframes blink {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0.5; transform: scale(0.95); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://esm.sh/three@0.160.0",
+            "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+            "nipplejs": "https://esm.sh/nipplejs@0.10.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div id="ui-layer">
+        <div id="hp-bar" class="hud-element">HP: 50</div>
+        <div id="mp-bar" class="hud-element">MP: 20</div>
+        
+        <div id="spirit-stats" class="hud-element">
+            <span style="color:#d32f2f">FIRE: 1</span><br>
+            <span style="color:#1976d2">WATER: 1</span><br>
+            <span style="color:#388e3c">EARTH: 1</span><br>
+            <span style="color:#fbc02d">WIND: 1</span>
+        </div>
+
+        <div id="compass" class="hud-element">
+            <div id="compass-arrow"></div>
+        </div>
+
+        <div id="message-box" class="hud-element"></div>
+        <div id="turn-indicator">PLAYER TURN</div>
+        <div id="move-bar-container"><div id="move-bar-fill"></div></div>
+
+        <div id="spell-controls">
+            <div id="spell-sub-1" class="spell-btn sub"></div>
+            <div id="spell-sub-2" class="spell-btn sub"></div>
+            <div id="spell-sub-3" class="spell-btn sub"></div>
+            <div id="spell-main" class="spell-btn main"></div>
+        </div>
+        
+        <div id="toolbelt-container">
+            <div class="toolbelt-slot" data-slot="0"></div>
+            <div class="toolbelt-slot" data-slot="1"></div>
+            <div class="toolbelt-slot" data-slot="2"></div>
+        </div>
+
+        <div id="zone-nipple"></div>
+    </div>
+    
+    <div id="inventory-modal">
+        <h2 style="color:white; text-shadow:2px 2px 0 #000;">INVENTORY</h2>
+        <p style="color:#aaa; font-size:10px;">Select item for this slot</p>
+        <div id="inventory-grid"></div>
+        <button id="close-inv-btn" style="margin-top:20px; padding:10px; background:#333; color:white; border:2px solid white; font-family:inherit; cursor:pointer;">CANCEL</button>
+    </div>
+
+    <div id="start-overlay">
+        <div id="tap-text">TAP TO START</div>
+    </div>
+
+    <div id="levelup-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:90; flex-direction:column; justify-content:center; align-items:center;">
+        <h2 style="color:white; margin-bottom:30px;">LEVEL UP!</h2>
+        <p style="color:#aaa; margin-bottom:20px;">Choose an element to upgrade:</p>
+        <div style="display:flex; gap:20px;">
+            <div class="element-btn fire" id="lvl-fire" style="width:80px; height:80px;">FIRE</div>
+            <div class="element-btn water" id="lvl-water" style="width:80px; height:80px;">WATER</div>
+            <div class="element-btn earth" id="lvl-earth" style="width:80px; height:80px;">EARTH</div>
+            <div class="element-btn wind" id="lvl-wind" style="width:80px; height:80px;">WIND</div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
